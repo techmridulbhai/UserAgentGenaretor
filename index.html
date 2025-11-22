@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UAGen - Advanced Browser Profile Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .btn-transition { transition: all 0.2s ease-in-out; }
+        .profile-card { transition: all 0.3s ease-in-out; border-color: #374151; }
+        .profile-card:hover { border-color: #06b6d4; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 border border-gray-700">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-cyan-400">UAGen</h1>
+            <p class="text-gray-400 mt-2">Advanced Browser Profile Generator</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <!-- OS Selection -->
+            <div>
+                <label for="os-select" class="block mb-2 text-sm font-medium text-gray-300">OS</label>
+                <select id="os-select" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5">
+                    <option value="random" selected>Random</option>
+                    <option value="windows">Windows</option>
+                    <option value="macos">macOS</option>
+                    <option value="android">Android</option>
+                    <option value="ios">iOS</option>
+                </select>
+            </div>
+            <!-- Browser Selection -->
+            <div>
+                <label for="browser-select" class="block mb-2 text-sm font-medium text-gray-300">Browser</label>
+                <select id="browser-select" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5">
+                    <option value="random" selected>Random</option>
+                </select>
+            </div>
+            <!-- Country/Language -->
+            <div>
+                <label for="country-select" class="block mb-2 text-sm font-medium text-gray-300">Country</label>
+                <select id="country-select" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5">
+                    <option value="random" selected>Random</option>
+                    <option value="US">USA</option>
+                    <option value="GB">UK</option>
+                    <option value="CA">Canada</option>
+                    <option value="DE">Germany</option>
+                    <option value="FR">France</option>
+                    <option value="JP">Japan</option>
+                </select>
+            </div>
+            <!-- Amount -->
+            <div>
+                <label for="ua-count" class="block mb-2 text-sm font-medium text-gray-300">Amount</label>
+                <input type="number" id="ua-count" value="3" min="1" max="10" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5">
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+             <button id="generate-btn" class="w-full col-span-1 sm:col-span-3 bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg btn-transition text-lg">
+                Generate Profiles
+            </button>
+            <button id="copy-btn" title="Copy All as JSON" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg btn-transition">Copy All (JSON)</button>
+            <button id="export-btn" title="Export as .json" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg btn-transition">Export All (JSON)</button>
+            <div id="feedback" class="text-cyan-400 text-sm h-6 flex items-center justify-center"></div>
+        </div>
+
+        <!-- Result Display Area -->
+        <div id="result-area" class="space-y-4">
+            <!-- Generated profiles will be injected here -->
+        </div>
+
+        <!-- Anti-Detector Note -->
+        <div class="mt-8 p-4 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-xs text-yellow-300">
+            <p><strong class="font-semibold">Pro Tip:</strong> For maximum stealth, use these profiles with a proxy or VPN located in the selected country. Ensure your system's timezone also matches the profile's country.</p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="text-center mt-8 text-xs text-gray-500">
+            <p>Supercharged with ❤️ by techmridul</p>
+        </div>
+    </div>
+
+    <script>
+    // --- DATA & CONFIGURATION (FINALIZED) ---
+    const config = {
+        browserOptions: {
+            windows: ['chrome', 'firefox'],
+            macos: ['chrome', 'firefox', 'safari'],
+            android: ['chrome'],
+            ios: ['safari']
+        },
+        platforms: {
+            windows: 'Win32',
+            macos: 'MacIntel',
+            android: 'Linux armv8l',
+            ios: 'iPhone' // Will be dynamically changed to iPad
+        },
+        screenResolutions: {
+            desktop: ['1920x1080', '2560x1440', '1536x864', '1366x768'],
+            android: ['360x740', '412x915', '390x844', '414x896'],
+            ios: ['390x844', '428x926', '375x812', '414x896'],
+            ipad: ['1024x1366', '820x1180', '810x1080']
+        },
+        languages: {
+            US: 'en-US,en;q=0.9',
+            GB: 'en-GB,en;q=0.9',
+            CA: 'en-CA,en;q=0.9',
+            DE: 'de-DE,de;q=0.9',
+            FR: 'fr-FR,fr;q=0.9',
+            JP: 'ja-JP,ja;q=0.9'
+        }
+    };
+
+    const data = {
+        macosVersions: { '14.5': { safari: '17.5' }, '13.6.7': { safari: '16.6' }, '12.7.5': { safari: '15.6' } },
+        androidVersions: ['13', '14'],
+        iosVersions: { 
+            '17.5.1': { safari: '17.5', build: '21F90' }, 
+            '16.7.8': { safari: '16.7', build: '20H343' }, 
+            '15.8.2': { safari: '15.8', build: '19H384' } 
+        },
+        chromeBuild: () => `127.0.${Math.floor(Math.random() * 6000)}.${Math.floor(Math.random() * 100)}`,
+        firefoxBuild: () => `128.0`,
+        webkitBuild: () => `537.36`,
+        webkitBuildModern: () => `605.1.15`
+    };
+
+    // --- DOM Elements ---
+    const osSelect = document.getElementById('os-select');
+    const browserSelect = document.getElementById('browser-select');
+    const countrySelect = document.getElementById('country-select');
+    const countInput = document.getElementById('ua-count');
+    const generateBtn = document.getElementById('generate-btn');
+    const resultArea = document.getElementById('result-area');
+    const copyBtn = document.getElementById('copy-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const feedback = document.getElementById('feedback');
+    
+    let generatedProfiles = [];
+
+    // --- FUNCTIONS ---
+    const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const choiceKey = (obj) => choice(Object.keys(obj));
+
+    function updateBrowserOptions() {
+        const selectedOS = osSelect.value;
+        browserSelect.innerHTML = '<option value="random" selected>Random</option>';
+        if (selectedOS !== 'random') {
+            config.browserOptions[selectedOS].forEach(browser => {
+                browserSelect.insertAdjacentHTML('beforeend', `<option value="${browser}">${browser.charAt(0).toUpperCase() + browser.slice(1)}</option>`);
+            });
+        }
+    }
+
+    function generateSingleProfile(os, browser, countryCode) {
+        if (os === 'random') os = choice(Object.keys(config.browserOptions));
+        if (browser === 'random' || !config.browserOptions[os].includes(browser)) {
+            browser = choice(config.browserOptions[os]);
+        }
+        if (countryCode === 'random') countryCode = choiceKey(config.languages);
+
+        const profile = { os, browser, country: countryCode };
+        let ua = '';
+
+        if (os === 'windows') {
+            profile.platform = config.platforms.windows;
+            profile.screen = choice(config.screenResolutions.desktop);
+            const arch = choice(['Win64; x64', 'WOW64']);
+            if (browser === 'chrome') {
+                ua = `Mozilla/5.0 (Windows NT 10.0; ${arch}) AppleWebKit/${data.webkitBuild()} (KHTML, like Gecko) Chrome/${data.chromeBuild()} Safari/${data.webkitBuild()}`;
+            } else { // firefox
+                ua = `Mozilla/5.0 (Windows NT 10.0; ${arch}; rv:${data.firefoxBuild()}) Gecko/20100101 Firefox/${data.firefoxBuild()}`;
+            }
+        } else if (os === 'macos') {
+            profile.platform = config.platforms.macos;
+            profile.screen = choice(config.screenResolutions.desktop);
+            const osVersion = choiceKey(data.macosVersions);
+            const versionInfo = data.macosVersions[osVersion];
+            const macOsXVer = `10_${osVersion.replace(/\./g, '_')}`;
+            if (browser === 'safari') {
+                ua = `Mozilla/5.0 (Macintosh; Intel Mac OS X ${macOsXVer}) AppleWebKit/${data.webkitBuildModern()} (KHTML, like Gecko) Version/${versionInfo.safari} Safari/${data.webkitBuildModern()}`;
+            } else { // chrome or firefox
+                ua = `Mozilla/5.0 (Macintosh; Intel Mac OS X ${macOsXVer}) AppleWebKit/${data.webkitBuild()} (KHTML, like Gecko) Chrome/${data.chromeBuild()} Safari/${data.webkitBuild()}`;
+            }
+        } else if (os === 'android') {
+            profile.platform = config.platforms.android;
+            profile.screen = choice(config.screenResolutions.android);
+            const model = choice(['SM-S928U1', 'Pixel 8 Pro', 'SM-G998U']);
+            ua = `Mozilla/5.0 (Linux; Android ${choice(data.androidVersions)}; ${model}) AppleWebKit/${data.webkitBuild()} (KHTML, like Gecko) Chrome/${data.chromeBuild()} Mobile Safari/${data.webkitBuild()}`;
+        } else if (os === 'ios') {
+            const device = choice(['iPhone', 'iPad']);
+            const osVersion = choiceKey(data.iosVersions);
+            const versionInfo = data.iosVersions[osVersion];
+            const osVersionUnderscored = osVersion.replace(/\./g, '_');
+            profile.platform = device;
+            
+            if (device === 'iPad') {
+                profile.screen = choice(config.screenResolutions.ipad);
+                // Correct UA for iPad: "CPU OS" and NO "Mobile/" token
+                ua = `Mozilla/5.0 (iPad; CPU OS ${osVersionUnderscored} like Mac OS X) AppleWebKit/${data.webkitBuildModern()} (KHTML, like Gecko) Version/${versionInfo.safari} Safari/${data.webkitBuildModern()}`;
+            } else { // iPhone
+                profile.screen = choice(config.screenResolutions.ios);
+                // Correct UA for iPhone: "CPU iPhone OS" and "Mobile/" token
+                ua = `Mozilla/5.0 (iPhone; CPU iPhone OS ${osVersionUnderscored} like Mac OS X) AppleWebKit/${data.webkitBuildModern()} (KHTML, like Gecko) Version/${versionInfo.safari} Mobile/${versionInfo.build} Safari/${data.webkitBuildModern()}`;
+            }
+        }
+        
+        profile.userAgent = ua;
+        profile.acceptLanguage = config.languages[countryCode];
+        return profile;
+    }
+
+    function displayProfiles() {
+        resultArea.innerHTML = '';
+        generatedProfiles.forEach((profile, index) => {
+            const card = `
+                <div class="profile-card bg-gray-700/50 p-4 rounded-lg border">
+                    <h3 class="font-bold text-cyan-400 mb-3">Profile #${index + 1}: <span class="capitalize">${profile.os} / ${profile.browser}</span></h3>
+                    <div class="space-y-2 text-sm">
+                        ${createProfileRow('User-Agent', profile.userAgent)}
+                        ${createProfileRow('Accept-Language', profile.acceptLanguage)}
+                        ${createProfileRow('Platform', profile.platform)}
+                        ${createProfileRow('Screen', profile.screen)}
+                    </div>
+                </div>
+            `;
+            resultArea.insertAdjacentHTML('beforeend', card);
+        });
+        
+        document.querySelectorAll('.copy-value-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const value = e.currentTarget.dataset.value;
+                copyTextToClipboard(value, 'Copied to clipboard!');
+            });
+        });
+    }
+    
+    function createProfileRow(label, value) {
+        return `
+            <div class="flex items-start justify-between gap-4">
+                <strong class="text-gray-400 font-medium whitespace-nowrap">${label}:</strong>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-300 break-all text-right">${value}</span>
+                    <button class="copy-value-btn flex-shrink-0 bg-gray-600 hover:bg-gray-500 p-1 rounded" data-value="${value.replace(/"/g, '&quot;')}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h-1v1a.5.5 0 0 1-.5.5H2.5a.5.5 0 0 1-.5-.5V6.5a.5.5 0 0 1 .5-.5H3v-1z"/></svg>
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    function handleGenerateClick() {
+        const count = Math.max(1, Math.min(10, parseInt(countInput.value, 10) || 1));
+        generatedProfiles = [];
+        for (let i = 0; i < count; i++) {
+            generatedProfiles.push(generateSingleProfile(osSelect.value, browserSelect.value, countrySelect.value));
+        }
+        displayProfiles();
+        showFeedback(`Generated ${count} new profiles!`, '#22d3ee');
+    }
+
+    function fallbackCopyTextToClipboard(text, successMessage) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) showFeedback(successMessage, '#34d399');
+            else showFeedback('Could not copy!', '#f87171');
+        } catch (err) {
+            showFeedback('Could not copy!', '#f87171');
+        }
+        document.body.removeChild(textArea);
+    }
+
+    function copyTextToClipboard(text, successMessage) {
+        if (!text) {
+             showFeedback('Nothing to copy!', '#f87171');
+             return;
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => {
+                showFeedback(successMessage, '#34d399');
+            }).catch(err => fallbackCopyTextToClipboard(text, successMessage));
+        } else {
+            fallbackCopyTextToClipboard(text, successMessage);
+        }
+    }
+
+    function copyAll() {
+        if (generatedProfiles.length === 0) {
+            showFeedback('Nothing to copy!', '#f87171'); return;
+        }
+        const jsonString = JSON.stringify(generatedProfiles, null, 2);
+        copyTextToClipboard(jsonString, 'All profiles copied as JSON!');
+    }
+    
+    function exportAll() {
+        if (generatedProfiles.length === 0) {
+            showFeedback('Nothing to export!', '#f87171'); return;
+        }
+        const jsonString = JSON.stringify(generatedProfiles, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'browser_profiles.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showFeedback('Exported to browser_profiles.json!', '#34d399');
+    }
+
+    function showFeedback(message, color) {
+        feedback.textContent = message;
+        feedback.style.color = color;
+        setTimeout(() => { feedback.textContent = ''; }, 3000);
+    }
+
+    osSelect.addEventListener('change', updateBrowserOptions);
+    generateBtn.addEventListener('click', handleGenerateClick);
+    copyBtn.addEventListener('click', copyAll);
+    exportBtn.addEventListener('click', exportAll);
+
+    window.addEventListener('load', () => {
+        updateBrowserOptions();
+        handleGenerateClick();
+    });
+    </script>
+</body>
+</html>
